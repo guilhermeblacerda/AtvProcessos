@@ -78,10 +78,11 @@ void processar_comando(Orquestrador *orquestrador, char *linha) {
         exit(0);
     } else if (strcmp(argumentos[0], "task") == 0) {
         comando_tarefa(orquestrador, argumentos);
-    } else {
+    } else if (strcmp(argumentos[0], "run") == 0) {
+    comando_executar(orquestrador, argumentos);
+    }else {
         printf("Comando desconhecido: %s\n", argumentos[0]);
     }
-}
 }
 
 void comando_tarefa(Orquestrador *orquestrador, char *argumentos[]) {
@@ -120,6 +121,65 @@ void comando_tarefa(Orquestrador *orquestrador, char *argumentos[]) {
     
     orquestrador->quantidade_tarefas++;
     printf("Tarefa '%s' cadastrada com sucesso\n", nova_tarefa->nome);
+}
+
+void executar_tarefa(Tarefa *tarefa, char *diretorio_trabalho) {
+    pid_t pid_processo = fork();
+    
+    if (pid_processo == 0) {
+        if (chdir(diretorio_trabalho) != 0) {
+            perror("Erro ao mudar para diretório de trabalho");
+            exit(1);
+        }
+        
+        execvp(tarefa->programa, tarefa->argumentos);
+        perror("Erro ao executar programa");
+        exit(1);
+        
+    } else if (pid_processo < 0) {
+        perror("Erro ao criar processo filho");
+    } else {
+        int status_saida;
+        waitpid(pid_processo, &status_saida, 0);
+        
+        if (WIFEXITED(status_saida) && WEXITSTATUS(status_saida) != 0) {
+            printf("Aviso: Processo terminou com código de saída %d\n", 
+                   WEXITSTATUS(status_saida));
+        }
+    }
+}
+
+void comando_executar_sequencial(Orquestrador *orquestrador, char *argumentos[], int inicio) {
+    int quantidade_tarefas = contar_argumentos(argumentos) - inicio;
+    
+    if (quantidade_tarefas < 1) {
+        printf("Erro: Pelo menos uma tarefa deve ser informada\n");
+        return;
+    }
+    
+    for (int i = 0; i < quantidade_tarefas; i++) {
+        Tarefa *tarefa = encontrar_tarefa(orquestrador, argumentos[inicio + i]);
+        if (tarefa == NULL) {
+            printf("Erro: Tarefa '%s' não encontrada\n", argumentos[inicio + i]);
+            return;
+        }
+        executar_tarefa(tarefa, orquestrador->diretorio_trabalho);
+    }
+}
+
+void comando_executar(Orquestrador *orquestrador, char *argumentos[]) {
+    int quantidade = contar_argumentos(argumentos);
+    
+    if (quantidade < 3) {
+        printf("Erro: Uso correto: run <sequential|parallel|pipe> <tarefas...>\n");
+        return;
+    }
+    
+    if (strcmp(argumentos[1], "sequential") == 0) {
+        comando_executar_sequencial(orquestrador, argumentos, 2);
+    } else {
+        printf("Erro: Modo inválido. Use 'sequential', 'parallel' ou 'pipe'\n");
+    }
 }
 
 int main(int argc, char *argv[]) {

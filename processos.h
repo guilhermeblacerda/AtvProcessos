@@ -42,4 +42,10 @@ typedef struct {
     char diretorio_trabalho[256];
 } Orquestrador;
 
+void inicializar_orquestrador(Orquestrador *orquestrador);
+void processar_comando(Orquestrador *orquestrador, char *linha);
+void limpar_string(char *texto);
+int contar_argumentos(char *argumentos[]);
+Tarefa* encontrar_tarefa(Orquestrador *orquestrador, char *nome)
+
 #endif
