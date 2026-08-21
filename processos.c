@@ -76,9 +76,50 @@ void processar_comando(Orquestrador *orquestrador, char *linha) {
     
     if (strcmp(argumentos[0], "exit") == 0) {
         exit(0);
+    } else if (strcmp(argumentos[0], "task") == 0) {
+        comando_tarefa(orquestrador, argumentos);
     } else {
         printf("Comando desconhecido: %s\n", argumentos[0]);
     }
+}
+}
+
+void comando_tarefa(Orquestrador *orquestrador, char *argumentos[]) {
+    int quantidade = contar_argumentos(argumentos);
+    
+    if (quantidade < 3) {
+        printf("Erro: Uso correto: task <nome> <programa> [argumentos...]\n");
+        return;
+    }
+    
+    if (orquestrador->quantidade_tarefas >= MAXIMO_TAREFAS) {
+        printf("Erro: Número máximo de tarefas atingido\n");
+        return;
+    }
+    
+    if (encontrar_tarefa(orquestrador, argumentos[1]) != NULL) {
+        printf("Erro: Tarefa '%s' já está cadastrada\n", argumentos[1]);
+        return;
+    }
+    
+    Tarefa *nova_tarefa = &orquestrador->tarefas[orquestrador->quantidade_tarefas];
+    nova_tarefa->nome = strdup(argumentos[1]);
+    nova_tarefa->programa = strdup(argumentos[2]);
+    nova_tarefa->arquivo_entrada = NULL;
+    nova_tarefa->arquivo_saida = NULL;
+    nova_tarefa->arquivo_anexar = NULL;
+    
+    nova_tarefa->quantidade_argumentos = quantidade - 3;
+    nova_tarefa->argumentos = malloc((nova_tarefa->quantidade_argumentos + 2) * sizeof(char*));
+    nova_tarefa->argumentos[0] = strdup(argumentos[2]);
+    
+    for (int i = 0; i < nova_tarefa->quantidade_argumentos; i++) {
+        nova_tarefa->argumentos[i + 1] = strdup(argumentos[i + 3]);
+    }
+    nova_tarefa->argumentos[nova_tarefa->quantidade_argumentos + 1] = NULL;
+    
+    orquestrador->quantidade_tarefas++;
+    printf("Tarefa '%s' cadastrada com sucesso\n", nova_tarefa->nome);
 }
 
 int main(int argc, char *argv[]) {
