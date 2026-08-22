@@ -177,8 +177,58 @@ void comando_executar(Orquestrador *orquestrador, char *argumentos[]) {
     
     if (strcmp(argumentos[1], "sequential") == 0) {
         comando_executar_sequencial(orquestrador, argumentos, 2);
+    } else if (strcmp(argumentos[1], "parallel") == 0) {
+        comando_executar_paralelo(orquestrador, argumentos, 2);
     } else {
         printf("Erro: Modo inválido. Use 'sequential', 'parallel' ou 'pipe'\n");
+    }
+}
+
+void comando_executar_paralelo(Orquestrador *orquestrador, char *argumentos[], int inicio) {
+    int quantidade_tarefas = contar_argumentos(argumentos) - inicio;
+    
+    if (quantidade_tarefas < 1) {
+        printf("Erro: Pelo menos uma tarefa deve ser informada\n");
+        return;
+    }
+    
+    pid_t pids_processos[MAXIMO_TAREFAS];
+    int quantidade_processos = 0;
+    
+    for (int i = 0; i < quantidade_tarefas; i++) {
+        Tarefa *tarefa = encontrar_tarefa(orquestrador, argumentos[inicio + i]);
+        if (tarefa == NULL) {
+            printf("Erro: Tarefa '%s' não encontrada\n", argumentos[inicio + i]);
+            for (int j = 0; j < quantidade_processos; j++) {
+                kill(pids_processos[j], SIGTERM);
+            }
+            return;
+        }
+        
+        pid_t pid_processo = fork();
+        if (pid_processo == 0) {
+            if (chdir(orquestrador->diretorio_trabalho) != 0) {
+                perror("Erro ao mudar diretório de trabalho");
+                exit(1);
+            }
+            execvp(tarefa->programa, tarefa->argumentos);
+            perror("Erro ao executar programa");
+            exit(1);
+        } else if (pid_processo < 0) {
+            perror("Erro ao criar processo filho");
+            return;
+        } else {
+            pids_processos[quantidade_processos++] = pid_processo;
+        }
+    }
+    
+    for (int i = 0; i < quantidade_processos; i++) {
+        int status_saida;
+        waitpid(pids_processos[i], &status_saida, 0);
+        if (WIFEXITED(status_saida) && WEXITSTATUS(status_saida) != 0) {
+            printf("Aviso: Processo %d terminou com código %d\n", 
+                   pids_processos[i], WEXITSTATUS(status_saida));
+        }
     }
 }
 
