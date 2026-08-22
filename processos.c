@@ -79,7 +79,13 @@ void processar_comando(Orquestrador *orquestrador, char *linha) {
     } else if (strcmp(argumentos[0], "task") == 0) {
         comando_tarefa(orquestrador, argumentos);
     } else if (strcmp(argumentos[0], "run") == 0) {
-    comando_executar(orquestrador, argumentos);
+        comando_executar(orquestrador, argumentos);
+    }else if (strcmp(argumentos[0], "input") == 0) {
+        comando_entrada(orquestrador, argumentos);
+    } else if (strcmp(argumentos[0], "output") == 0) {
+        comando_saida(orquestrador, argumentos);
+    } else if (strcmp(argumentos[0], "append") == 0) {
+        comando_anexar(orquestrador, argumentos);
     }else {
         printf("Comando desconhecido: %s\n", argumentos[0]);
     }
@@ -130,6 +136,36 @@ void executar_tarefa(Tarefa *tarefa, char *diretorio_trabalho) {
         if (chdir(diretorio_trabalho) != 0) {
             perror("Erro ao mudar para diretório de trabalho");
             exit(1);
+        }
+        
+        if (tarefa->arquivo_entrada) {
+            int descritor = open(tarefa->arquivo_entrada, O_RDONLY);
+            if (descritor < 0) {
+                perror("Erro ao abrir arquivo de entrada");
+                exit(1);
+            }
+            dup2(descritor, STDIN_FILENO);
+            close(descritor);
+        }
+        
+        if (tarefa->arquivo_saida) {
+            int descritor = open(tarefa->arquivo_saida, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+            if (descritor < 0) {
+                perror("Erro ao abrir arquivo de saída");
+                exit(1);
+            }
+            dup2(descritor, STDOUT_FILENO);
+            close(descritor);
+        }
+        
+        if (tarefa->arquivo_anexar) {
+            int descritor = open(tarefa->arquivo_anexar, O_WRONLY | O_CREAT | O_APPEND, 0644);
+            if (descritor < 0) {
+                perror("Erro ao abrir arquivo para anexar");
+                exit(1);
+            }
+            dup2(descritor, STDOUT_FILENO);
+            close(descritor);
         }
         
         execvp(tarefa->programa, tarefa->argumentos);
@@ -230,6 +266,65 @@ void comando_executar_paralelo(Orquestrador *orquestrador, char *argumentos[], i
                    pids_processos[i], WEXITSTATUS(status_saida));
         }
     }
+}
+
+void comando_entrada(Orquestrador *orquestrador, char *argumentos[]) {
+    int quantidade = contar_argumentos(argumentos);
+    
+    if (quantidade < 3) {
+        printf("Erro: Uso correto: input <tarefa> <arquivo>\n");
+        return;
+    }
+    
+    Tarefa *tarefa = encontrar_tarefa(orquestrador, argumentos[1]);
+    if (tarefa == NULL) {
+        printf("Erro: Tarefa '%s' não encontrada\n", argumentos[1]);
+        return;
+    }
+    
+    if (access(argumentos[2], F_OK) != 0) {
+        printf("Erro: Arquivo '%s' não existe\n", argumentos[2]);
+        return;
+    }
+    
+    tarefa->arquivo_entrada = strdup(argumentos[2]);
+    printf("Entrada de '%s' redirecionada para '%s'\n", argumentos[1], argumentos[2]);
+}
+
+void comando_saida(Orquestrador *orquestrador, char *argumentos[]) {
+    int quantidade = contar_argumentos(argumentos);
+    
+    if (quantidade < 3) {
+        printf("Erro: Uso correto: output <tarefa> <arquivo>\n");
+        return;
+    }
+    
+    Tarefa *tarefa = encontrar_tarefa(orquestrador, argumentos[1]);
+    if (tarefa == NULL) {
+        printf("Erro: Tarefa '%s' não encontrada\n", argumentos[1]);
+        return;
+    }
+    
+    tarefa->arquivo_saida = strdup(argumentos[2]);
+    printf("Saída de '%s' redirecionada para '%s'\n", argumentos[1], argumentos[2]);
+}
+
+void comando_anexar(Orquestrador *orquestrador, char *argumentos[]) {
+    int quantidade = contar_argumentos(argumentos);
+    
+    if (quantidade < 3) {
+        printf("Erro: Uso correto: append <tarefa> <arquivo>\n");
+        return;
+    }
+    
+    Tarefa *tarefa = encontrar_tarefa(orquestrador, argumentos[1]);
+    if (tarefa == NULL) {
+        printf("Erro: Tarefa '%s' não encontrada\n", argumentos[1]);
+        return;
+    }
+    
+    tarefa->arquivo_anexar = strdup(argumentos[2]);
+    printf("Saída de '%s' redirecionada (append) para '%s'\n", argumentos[1], argumentos[2]);
 }
 
 int main(int argc, char *argv[]) {
