@@ -1,5 +1,5 @@
-#ifndef PROCESSFLOW_H
-#define PROCESSFLOW_H
+#ifndef PROCESSOS_H
+#define PROCESSOS_H
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,9 +43,24 @@ typedef struct {
 } Orquestrador;
 
 void inicializar_orquestrador(Orquestrador *orquestrador);
-void processar_comando(Orquestrador *orquestrador, char *linha);
 void limpar_string(char *texto);
 int contar_argumentos(char *argumentos[]);
-Tarefa* encontrar_tarefa(Orquestrador *orquestrador, char *nome)
+Tarefa* encontrar_tarefa(Orquestrador *orquestrador, char *nome);
+
+void processar_comando(Orquestrador *orquestrador, char *linha);
+
+void comando_tarefa(Orquestrador *orquestrador, char *argumentos[]);
+void comando_executar(Orquestrador *orquestrador, char *argumentos[]);
+void comando_executar_sequencial(Orquestrador *orquestrador, char *argumentos[], int inicio);
+void comando_executar_paralelo(Orquestrador *orquestrador, char *argumentos[], int inicio);
+void comando_executar_tubulacao(Orquestrador *orquestrador, char *argumentos[], int inicio);
+void comando_entrada(Orquestrador *orquestrador, char *argumentos[]);
+void comando_saida(Orquestrador *orquestrador, char *argumentos[]);
+void comando_anexar(Orquestrador *orquestrador, char *argumentos[]);
+void comando_iniciar_fundo(Orquestrador *orquestrador, char *argumentos[]);
+void comando_listar_trabalhos(Orquestrador *orquestrador);
+void comando_esperar_trabalho(Orquestrador *orquestrador, char *argumentos[]);
+
+void executar_tarefa(Tarefa *tarefa, char *diretorio_trabalho);
 
 #endif
