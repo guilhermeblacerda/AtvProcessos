@@ -86,6 +86,12 @@ void processar_comando(Orquestrador *orquestrador, char *linha) {
         comando_saida(orquestrador, argumentos);
     } else if (strcmp(argumentos[0], "append") == 0) {
         comando_anexar(orquestrador, argumentos);
+    }else if (strcmp(argumentos[0], "start") == 0) {
+    comando_iniciar_fundo(orquestrador, argumentos);
+    } else if (strcmp(argumentos[0], "jobs") == 0) {
+        comando_listar_trabalhos(orquestrador);
+    } else if (strcmp(argumentos[0], "wait") == 0) {
+    comando_esperar_trabalho(orquestrador, argumentos);
     }else {
         printf("Comando desconhecido: %s\n", argumentos[0]);
     }
@@ -403,6 +409,100 @@ void comando_executar_tubulacao(Orquestrador *orquestrador, char *argumentos[], 
     for (int i = 0; i < quantidade_processos; i++) {
         waitpid(pids_processos[i], NULL, 0);
     }
+}
+
+void comando_iniciar_fundo(Orquestrador *orquestrador, char *argumentos[]) {
+    int quantidade = contar_argumentos(argumentos);
+    
+    if (quantidade < 2) {
+        printf("Erro: Uso correto: start <tarefa>\n");
+        return;
+    }
+    
+    Tarefa *tarefa = encontrar_tarefa(orquestrador, argumentos[1]);
+    if (tarefa == NULL) {
+        printf("Erro: Tarefa '%s' não encontrada\n", argumentos[1]);
+        return;
+    }
+    
+    pid_t pid_processo = fork();
+    if (pid_processo == 0) {
+        if (chdir(orquestrador->diretorio_trabalho) != 0) {
+            perror("Erro ao mudar diretório de trabalho");
+            exit(1);
+        }
+        execvp(tarefa->programa, tarefa->argumentos);
+        perror("Erro ao executar programa");
+        exit(1);
+    } else if (pid_processo < 0) {
+        perror("Erro ao criar processo filho");
+        return;
+    } else {
+        Trabalho *novo_trabalho = &orquestrador->trabalhos[orquestrador->quantidade_trabalhos];
+        novo_trabalho->identificador = orquestrador->proximo_identificador_trabalho++;
+        novo_trabalho->pid_processo = pid_processo;
+        novo_trabalho->nome_tarefa = strdup(argumentos[1]);
+        novo_trabalho->esta_rodando = 1;
+        orquestrador->quantidade_trabalhos++;
+        
+        printf("[%d] %d\n", novo_trabalho->identificador, pid_processo);
+    }
+}
+
+void comando_listar_trabalhos(Orquestrador *orquestrador) {
+    if (orquestrador->quantidade_trabalhos == 0) {
+        printf("Nenhum trabalho em execução\n");
+        return;
+    }
+    
+    for (int i = 0; i < orquestrador->quantidade_trabalhos; i++) {
+        if (orquestrador->trabalhos[i].esta_rodando) {
+            int status_saida;
+            pid_t resultado = waitpid(orquestrador->trabalhos[i].pid_processo, &status_saida, WNOHANG);
+            
+            if (resultado == orquestrador->trabalhos[i].pid_processo) {
+                orquestrador->trabalhos[i].esta_rodando = 0;
+                printf("[%d] %s finalizado (PID: %d)\n", 
+                       orquestrador->trabalhos[i].identificador, 
+                       orquestrador->trabalhos[i].nome_tarefa,
+                       orquestrador->trabalhos[i].pid_processo);
+            } else if (resultado == 0) {
+                printf("[%d] %s em execução (PID: %d)\n", 
+                       orquestrador->trabalhos[i].identificador,
+                       orquestrador->trabalhos[i].nome_tarefa,
+                       orquestrador->trabalhos[i].pid_processo);
+            }
+        }
+    }
+}
+
+void comando_esperar_trabalho(Orquestrador *orquestrador, char *argumentos[]) {
+    int quantidade = contar_argumentos(argumentos);
+    
+    if (quantidade < 2) {
+        printf("Erro: Uso correto: wait <identificador_trabalho>\n");
+        return;
+    }
+    
+    int identificador = atoi(argumentos[1]);
+    Trabalho *trabalho_encontrado = NULL;
+    
+    for (int i = 0; i < orquestrador->quantidade_trabalhos; i++) {
+        if (orquestrador->trabalhos[i].identificador == identificador) {
+            trabalho_encontrado = &orquestrador->trabalhos[i];
+            break;
+        }
+    }
+    
+    if (trabalho_encontrado == NULL || !trabalho_encontrado->esta_rodando) {
+        printf("Erro: Trabalho %d não encontrado ou já finalizado\n", identificador);
+        return;
+    }
+    
+    printf("Aguardando trabalho %d...\n", identificador);
+    waitpid(trabalho_encontrado->pid_processo, NULL, 0);
+    trabalho_encontrado->esta_rodando = 0;
+    printf("Trabalho %d finalizado\n", identificador);
 }
 
 int main(int argc, char *argv[]) {
