@@ -215,6 +215,8 @@ void comando_executar(Orquestrador *orquestrador, char *argumentos[]) {
         comando_executar_sequencial(orquestrador, argumentos, 2);
     } else if (strcmp(argumentos[1], "parallel") == 0) {
         comando_executar_paralelo(orquestrador, argumentos, 2);
+    } else if (strcmp(argumentos[1], "pipe") == 0) {
+        comando_executar_tubulacao(orquestrador, argumentos, 2);
     } else {
         printf("Erro: Modo inválido. Use 'sequential', 'parallel' ou 'pipe'\n");
     }
@@ -325,6 +327,82 @@ void comando_anexar(Orquestrador *orquestrador, char *argumentos[]) {
     
     tarefa->arquivo_anexar = strdup(argumentos[2]);
     printf("Saída de '%s' redirecionada (append) para '%s'\n", argumentos[1], argumentos[2]);
+}
+
+void comando_executar_tubulacao(Orquestrador *orquestrador, char *argumentos[], int inicio) {
+    int quantidade_tarefas = contar_argumentos(argumentos) - inicio;
+    
+    if (quantidade_tarefas < 2) {
+        printf("Erro: Tubulação precisa de pelo menos 2 tarefas\n");
+        return;
+    }
+    
+    for (int i = 0; i < quantidade_tarefas; i++) {
+        if (encontrar_tarefa(orquestrador, argumentos[inicio + i]) == NULL) {
+            printf("Erro: Tarefa '%s' não encontrada\n", argumentos[inicio + i]);
+            return;
+        }
+    }
+    
+    int tubo_descritores[2];
+    int tubo_descritores_anterior[2];
+    pid_t pids_processos[MAXIMO_TAREFAS];
+    int quantidade_processos = 0;
+    
+    for (int i = 0; i < quantidade_tarefas; i++) {
+        Tarefa *tarefa = encontrar_tarefa(orquestrador, argumentos[inicio + i]);
+        
+        if (i < quantidade_tarefas - 1) {
+            if (pipe(tubo_descritores) < 0) {
+                perror("Erro ao criar tubulação");
+                return;
+            }
+        }
+        
+        pid_t pid_processo = fork();
+        if (pid_processo == 0) {
+            if (i > 0) {
+                dup2(tubo_descritores_anterior[0], STDIN_FILENO);
+                close(tubo_descritores_anterior[0]);
+                close(tubo_descritores_anterior[1]);
+            }
+            
+            if (i < quantidade_tarefas - 1) {
+                dup2(tubo_descritores[1], STDOUT_FILENO);
+                close(tubo_descritores[0]);
+                close(tubo_descritores[1]);
+            }
+            
+            if (chdir(orquestrador->diretorio_trabalho) != 0) {
+                perror("Erro ao mudar diretório de trabalho");
+                exit(1);
+            }
+            
+            execvp(tarefa->programa, tarefa->argumentos);
+            perror("Erro ao executar programa");
+            exit(1);
+            
+        } else if (pid_processo < 0) {
+            perror("Erro ao criar processo filho");
+            return;
+        } else {
+            pids_processos[quantidade_processos++] = pid_processo;
+            
+            if (i > 0) {
+                close(tubo_descritores_anterior[0]);
+                close(tubo_descritores_anterior[1]);
+            }
+            
+            if (i < quantidade_tarefas - 1) {
+                tubo_descritores_anterior[0] = tubo_descritores[0];
+                tubo_descritores_anterior[1] = tubo_descritores[1];
+            }
+        }
+    }
+    
+    for (int i = 0; i < quantidade_processos; i++) {
+        waitpid(pids_processos[i], NULL, 0);
+    }
 }
 
 int main(int argc, char *argv[]) {
