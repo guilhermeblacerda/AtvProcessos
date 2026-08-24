@@ -122,6 +122,34 @@ void comando_tarefa(Orquestrador *orquestrador, char *argumentos[]) {
     nova_tarefa->arquivo_saida = NULL;
     nova_tarefa->arquivo_anexar = NULL;
     
+    int is_printf = (strcmp(argumentos[2], "/usr/bin/printf") == 0);
+    
+    if (is_printf && quantidade > 3) {
+        int tamanho_total = 0;
+        for (int i = 3; i < quantidade; i++) {
+            tamanho_total += strlen(argumentos[i]) + 1;
+        }
+        
+        char *args_concatenados = malloc(tamanho_total + 1);
+        args_concatenados[0] = '\0';
+        for (int i = 3; i < quantidade; i++) {
+            strcat(args_concatenados, argumentos[i]);
+            if (i < quantidade - 1) {
+                strcat(args_concatenados, " ");
+            }
+        }
+        
+        nova_tarefa->quantidade_argumentos = 1;
+        nova_tarefa->argumentos = malloc(3 * sizeof(char*));
+        nova_tarefa->argumentos[0] = strdup(argumentos[2]);
+        nova_tarefa->argumentos[1] = args_concatenados;
+        nova_tarefa->argumentos[2] = NULL;
+        
+        orquestrador->quantidade_tarefas++;
+        printf("Tarefa '%s' cadastrada com sucesso\n", nova_tarefa->nome);
+        return;
+    }
+    
     nova_tarefa->quantidade_argumentos = quantidade - 3;
     nova_tarefa->argumentos = malloc((nova_tarefa->quantidade_argumentos + 2) * sizeof(char*));
     nova_tarefa->argumentos[0] = strdup(argumentos[2]);

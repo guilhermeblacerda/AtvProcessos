@@ -1,0 +1,35 @@
+total 104
+drwxr-xr-x  3 guila guila  4096 Aug 23 18:48 .
+drwxr-x--- 10 guila guila  4096 Aug 21 11:00 ..
+drwxr-xr-x  8 guila guila  4096 Aug 23 18:41 .git
+-rw-r--r--  1 guila guila   276 Aug 23 10:53 Makefile
+-rwxr-xr-x  1 guila guila    16 Aug 21 11:00 README.md
+-rw-r--r--  1 guila guila     0 Aug 23 18:49 evidencias.log
+-rwxr-xr-x  1 guila guila 60496 Aug 23 18:48 processflow
+-rwxr-xr-x  1 guila guila 18477 Aug 23 10:50 processos.c
+-rwxr-xr-x  1 guila guila  2151 Aug 23 10:58 processos.h
+0
+0
+total 108
+drwxr-xr-x  3 guila guila  4096 Aug 23 18:48 .
+drwxr-x--- 10 guila guila  4096 Aug 21 11:00 ..
+drwxr-xr-x  8 guila guila  4096 Aug 23 18:41 .git
+-rw-r--r--  1 guila guila   276 Aug 23 10:53 Makefile
+-rwxr-xr-x  1 guila guila    16 Aug 21 11:00 README.md
+-rw-r--r--  1 guila guila   499 Aug 23 18:49 evidencias.log
+-rwxr-xr-x  1 guila guila 60496 Aug 23 18:48 processflow
+-rwxr-xr-x  1 guila guila 18477 Aug 23 10:50 processos.c
+-rwxr-xr-x  1 guila guila  2151 Aug 23 10:58 processos.h
+10
+"Ola mundo"
+processflow> Tarefa 'listar' cadastrada com sucesso
+processflow> Tarefa 'contar' cadastrada com sucesso
+processflow> Tarefa 'ordenar' cadastrada com sucesso
+processflow> Tarefa 'echo' cadastrada com sucesso
+processflow> processflow> processflow> processflow> Entrada de 'listar' redirecionada para '/etc/passwd'
+processflow> Saída de 'listar' redirecionada para 'saida.txt'
+processflow> processflow> [1] 3352
+processflow> [1] echo em execução (PID: 3352)
+processflow> Aguardando trabalho 1...
+Trabalho 1 finalizado
+processflow> 
