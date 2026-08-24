@@ -20,10 +20,11 @@
 - Aguardar trabalho específico (`wait`)
 - Comando de saída (`exit`)
 
-## Compilação
+Compilação
 ```bash
 make
 
-## Execução
+
+Execução
 ```bash
 ./processflow
