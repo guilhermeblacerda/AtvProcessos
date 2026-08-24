@@ -21,10 +21,8 @@
 - Comando de saída (`exit`)
 
 Compilação
-```bash
 make
 
 
 Execução
-```bash
 ./processflow
